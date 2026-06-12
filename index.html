@@ -611,7 +611,6 @@ function audioInit() {
   actx = new (window.AudioContext||window.webkitAudioContext)();
   master = actx.createGain(); master.gain.value = 0.85; master.connect(actx.destination);
   metroGain = actx.createGain(); metroGain.gain.value = 0.5; metroGain.connect(master);
-  loadSamples();
 }
 
 const SEMI = {C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
@@ -638,20 +637,7 @@ function playToneSynth(f, t, dur, gain) {
   o.stop(t+dur+0.25); o2.stop(t+dur+0.25); o3.stop(t+dur+0.25);
 }
 function playBuffer(note, t, dur, gain) {
-  const root = note.replace(/\d/, "");
-  const buf = BUFFERS_SUSTAIN[root];
-  if (buf) {
-    const src = actx.createBufferSource(), g = actx.createGain();
-    src.buffer = buf;
-    // ajusta a altura: compara a frequência da nota pedida com a do sample (gravado em oitava 4)
-    src.playbackRate.value = noteFreq(note) / noteFreq(root + "4");
-    g.gain.setValueAtTime(gain, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.8);
-    src.connect(g); g.connect(master);
-    src.start(t); src.stop(t + dur + 0.9);
-  } else {
-    playToneSynth(noteFreq(note), t, dur, gain);
-  }
+  playToneSynth(noteFreq(note), t, dur, gain);
 }
 function playChordAt(sym, t, dur) {
   CHORDS[sym].notes.forEach((nf,i) => playBuffer(nf[0], t+i*0.012, dur, 0.55));
