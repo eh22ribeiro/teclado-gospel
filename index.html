@@ -318,7 +318,7 @@ const SONGS = [
       {t:110, chord:"G"},
     ],
     audio:{
-      full:"Que Amor É Esse - Luma Elpidio (Video Oficial) - Luma Elpidio (youtube).mp3",
+      full:"song1.mp3",
       base:null, keys:null
     },
     lyrics:[
@@ -356,7 +356,7 @@ const SONGS = [
       {t:94,  chord:"F"},
     ],
     audio:{
-      full:"Deus Me Ama - Thalles Roberto (youtube).mp3",
+      full:"song2.mp3",
       base:null, keys:null
     },
     lyrics:[
@@ -393,7 +393,7 @@ const SONGS = [
       {t:155, chord:"G"},
     ],
     audio:{
-      full:"Ana Nóbrega - Oceanos (Onde Meus Pés Podem Falhar) - Oceans Hillsong versão Português - Ana Nóbrega (youtube).mp3",
+      full:"song3.mp3",
       base:null, keys:null
     },
     lyrics:[
@@ -430,7 +430,7 @@ const SONGS = [
       {t:165, chord:"C"},
     ],
     audio:{
-      full:"Quão Grande É O Meu Deus   - Soraya Moraes - Memory Line (youtube).mp3",
+      full:"song4.mp3",
       base:null, keys:null
     },
     lyrics:[
@@ -469,7 +469,7 @@ const SONGS = [
       {t:155, chord:"Bb"},
     ],
     audio:{
-      full:"Ousado Amor (Clipe Oficial) - Isaias Saad - Isaias Saad (youtube).mp3",
+      full:"song5.mp3",
       base:null, keys:null
     },
     lyrics:[
@@ -507,7 +507,7 @@ const SONGS = [
       {t:148, chord:"C"},
     ],
     audio:{
-      full:"Porque Ele Vive __ Victor Valente  Conferência Dunamis 2017 - Dunamis Music (youtube).mp3",
+      full:"song6.mp3",
       base:null, keys:null
     },
     lyrics:[
@@ -580,7 +580,6 @@ function audioInit() {
   if (actx) return;
   actx = new (window.AudioContext||window.webkitAudioContext)();
   master = actx.createGain(); master.gain.value = 0.85; master.connect(actx.destination);
-  loadSamples();
 }
 
 const SEMI = {C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
@@ -596,16 +595,8 @@ function playToneSynth(f, t, dur, gain) {
   o.connect(g); o2.connect(g); g.connect(master);
   o.start(t); o2.start(t); o.stop(t+dur+0.05); o2.stop(t+dur+0.05);
 }
-function playBuffer(note, t, dur, gain, staccato) {
-  const m = note.match(/^([A-G]#?)(\d)$/); if (!m) return;
-  const buf = staccato ? BUFFERS_STACCATO[m[1]] : BUFFERS_SUSTAIN[m[1]];
-  if (!buf) { playToneSynth(noteFreq(note), t, dur, gain*0.16); return; }
-  const src = actx.createBufferSource(), g = actx.createGain();
-  src.buffer = buf; src.playbackRate.value = Math.pow(2, parseInt(m[2])-4);
-  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(gain,t+0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t+Math.min(dur, buf.duration-0.05));
-  src.connect(g); g.connect(master);
-  src.start(t); src.stop(t+Math.min(dur+0.1, buf.duration));
+function playBuffer(note, t, dur, gain) {
+  playToneSynth(noteFreq(note), t, dur, gain);
 }
 function playChordAt(sym, t, dur) {
   CHORDS[sym].notes.forEach((nf,i) => playBuffer(nf[0], t+i*0.012, dur, 0.55));
