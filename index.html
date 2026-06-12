@@ -168,10 +168,25 @@
     <div class="field"><label>Senha</label><input id="passInput" type="password" autocomplete="current-password" placeholder="sua senha"></div>
     <button class="btn-primary" id="loginBtn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="loginErr"></div>
-    <div id="resetWrap" style="margin-top:14px;display:none">
-      <button class="btn-link" onclick="doReset()">Receber link para redefinir senha</button>
+    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.45">
+        <b style="color:var(--ink)">Primeiro acesso?</b> Digite acima o e-mail que você usou na compra e clique abaixo para criar sua senha.
+      </div>
+      <button class="btn-link" id="firstBtn" onclick="doFirstAccess()">Criar minha senha / esqueci a senha</button>
     </div>
-    <button class="btn-link" style="margin-top:10px" onclick="toggleReset()">Esqueci minha senha</button>
+  </div>
+</div>
+
+<!-- CRIAR / REDEFINIR SENHA -->
+<div id="setpass" class="hidden" style="min-height:80vh;display:flex;align-items:center;justify-content:center">
+  <div class="login-card">
+    <div class="logo-lg">🔑</div>
+    <h2>Crie sua senha</h2>
+    <div class="sub">Quase lá! Defina a senha que você vai usar para entrar.</div>
+    <div class="field"><label>Nova senha</label><input id="np1" type="password" autocomplete="new-password" placeholder="mínimo 6 caracteres"></div>
+    <div class="field"><label>Repita a senha</label><input id="np2" type="password" autocomplete="new-password" placeholder="repita a senha"></div>
+    <button class="btn-primary" id="setpassBtn" onclick="doSetPass()">Salvar e entrar</button>
+    <div class="login-err" id="setpassErr"></div>
   </div>
 </div>
 
@@ -282,6 +297,10 @@
 const SUPA_URL  = "https://wkodywuaebvkmczbhgmn.supabase.co";
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indrb2R5d3VhZWJ2a21jemJoZ21uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTkxMjksImV4cCI6MjA5Njc5NTEyOX0.GUDZWY9H6COYmxw0bA__r84dAPQe1kuSQLgidUfuNUU";
 const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+/* URL pública do site (precisa estar na lista de Redirect URLs do Supabase).
+   Deixe vazio "" para usar a URL atual da página automaticamente. */
+const SITE_URL = "";
+let recoveryMode = false; // true enquanto o aluno está definindo a senha pelo link do e-mail
 
 /* ===================== ACORDES ===================== */
 const FNAME = {1:"polegar",2:"indicador",3:"do meio",4:"anelar",5:"mindinho"};
@@ -594,18 +613,38 @@ function noteFreq(note) {
   return 440 * Math.pow(2, (SEMI[m[1]] + (parseInt(m[2])-4)*12 - 9) / 12);
 }
 function playToneSynth(f, t, dur, gain) {
-  const o = actx.createOscillator(), o2 = actx.createOscillator(), g = actx.createGain();
-  o.type="sine"; o2.type="sine";
-  o.frequency.value=f; o2.frequency.value=f*1.002; // leve detune para warmth
-  g.gain.setValueAtTime(0.0001,t);
-  g.gain.exponentialRampToValueAtTime(gain*0.7, t+0.04);  // attack suave 40ms
-  g.gain.exponentialRampToValueAtTime(gain*0.45, t+0.12); // decay leve
-  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);     // release
+  // Oscilador principal (fundamental) + harmônico suave (5ª)
+  const o = actx.createOscillator(), o2 = actx.createOscillator();
+  const o3 = actx.createOscillator(), g = actx.createGain();
+  o.type="sine"; o2.type="sine"; o3.type="sine";
+  o.frequency.value=f; o2.frequency.value=f*1.0015; o3.frequency.value=f*1.5; // 5ª harmônica suave
+  const gHarm = actx.createGain(); gHarm.gain.value = 0.08; // harmônica bem baixa
+  o3.connect(gHarm); gHarm.connect(g);
+  // envelope mais suave: attack 80ms, decay longo, release gradual
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain * 0.42, t + 0.08);  // attack 80ms
+  g.gain.exponentialRampToValueAtTime(gain * 0.28, t + 0.35);  // decay suave
+  g.gain.exponentialRampToValueAtTime(gain * 0.18, t + dur * 0.7);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.15); // release
   o.connect(g); o2.connect(g); g.connect(master);
-  o.start(t); o2.start(t); o.stop(t+dur+0.08); o2.stop(t+dur+0.08);
+  o.start(t); o2.start(t); o3.start(t);
+  o.stop(t+dur+0.25); o2.stop(t+dur+0.25); o3.stop(t+dur+0.25);
 }
 function playBuffer(note, t, dur, gain) {
-  playToneSynth(noteFreq(note), t, dur, gain);
+  const root = note.replace(/\d/, "");
+  const buf = BUFFERS_SUSTAIN[root];
+  if (buf) {
+    const src = actx.createBufferSource(), g = actx.createGain();
+    src.buffer = buf;
+    // ajusta a altura: compara a frequência da nota pedida com a do sample (gravado em oitava 4)
+    src.playbackRate.value = noteFreq(note) / noteFreq(root + "4");
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.8);
+    src.connect(g); g.connect(master);
+    src.start(t); src.stop(t + dur + 0.9);
+  } else {
+    playToneSynth(noteFreq(note), t, dur, gain);
+  }
 }
 function playChordAt(sym, t, dur) {
   CHORDS[sym].notes.forEach((nf,i) => playBuffer(nf[0], t+i*0.012, dur, 0.55));
@@ -616,10 +655,11 @@ function playChordNow(sym) {
 }
 function click(t, accent) {
   const o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.value = accent?1500:1000; o.type="square";
-  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(accent?0.22:0.13,t+0.002);
-  g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.06);
+  o.frequency.value = accent ? 900 : 600; o.type = "sine";
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(accent ? 0.10 : 0.06, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.08);
 }
 
 /* ===================== PIANO (render) ===================== */
@@ -917,7 +957,7 @@ function runStudyLoop() {
 }
 
 /* ===================== NAV ===================== */
-function show(id){["login","home","player","study"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));}
+function show(id){["login","setpass","home","player","study"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));}
 function goHome(){
   stopPlay(); stopStudy();
   if (cifraAudio) { cifraAudio.pause(); cifraAudio.currentTime = 0; }
@@ -945,21 +985,39 @@ async function doLogin() {
   }
 }
 
-function toggleReset() {
-  const w = document.getElementById("resetWrap");
-  w.style.display = w.style.display === "none" ? "block" : "none";
-}
-
-async function doReset() {
+/* Primeiro acesso E "esqueci a senha" usam o mesmo mecanismo:
+   o Supabase só envia o e-mail se o usuário existir (ou seja, se a compra
+   já tiver cadastrado o e-mail no Supabase via Hotmart). */
+async function doFirstAccess() {
   const email = document.getElementById("emailInput").value.trim();
   if (!email) { setLoginErr("Digite seu e-mail acima primeiro."); return; }
+  const btn = document.getElementById("firstBtn");
+  btn.disabled = true; setLoginErr("");
   const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href
+    redirectTo: (SITE_URL || window.location.origin + window.location.pathname)
   });
+  btn.disabled = false;
   if (error) { setLoginErr(error.message); return; }
   const errEl = document.getElementById("loginErr");
   errEl.className = "login-ok";
-  errEl.textContent = "Link enviado! Verifique seu e-mail.";
+  errEl.textContent = "Pronto! Enviamos um link para o seu e-mail. Abra-o para criar sua senha. (Confira o spam.)";
+}
+
+/* Tela "Crie sua senha": chamada quando o aluno chega pelo link do e-mail */
+async function doSetPass() {
+  const p1 = document.getElementById("np1").value;
+  const p2 = document.getElementById("np2").value;
+  const err = document.getElementById("setpassErr");
+  err.className = "login-err";
+  if (p1.length < 6) { err.textContent = "A senha precisa ter pelo menos 6 caracteres."; return; }
+  if (p1 !== p2)     { err.textContent = "As duas senhas não são iguais."; return; }
+  const btn = document.getElementById("setpassBtn");
+  btn.disabled = true; btn.textContent = "Salvando…";
+  const { error } = await supa.auth.updateUser({ password: p1 });
+  btn.disabled = false; btn.textContent = "Salvar e entrar";
+  if (error) { err.textContent = error.message; return; }
+  recoveryMode = false;
+  enter();
 }
 
 async function logout() {
@@ -983,18 +1041,35 @@ function buildHome(){
   });
 }
 
+/* O link do e-mail traz type=recovery (ou invite) no endereço.
+   Nesse caso NÃO entramos direto: mostramos a tela de criar senha. */
+function urlHasRecovery(){
+  const h = (window.location.hash || "") + "&" + (window.location.search || "");
+  return /type=(recovery|invite)/.test(h);
+}
+
 window.addEventListener("load", async () => {
-  supa.auth.onAuthStateChange((_event, session) => {
+  if (urlHasRecovery()) recoveryMode = true;
+
+  supa.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") { recoveryMode = true; show("setpass"); return; }
+    if (recoveryMode) { show("setpass"); return; }
     if (session) enter(); else show("login");
   });
+
   const { data: { session } } = await supa.auth.getSession();
-  if (session) enter(); else show("login");
+  if (recoveryMode)      show("setpass");
+  else if (session)      enter();
+  else                   show("login");
 
   document.getElementById("passInput").addEventListener("keydown", e => {
     if (e.key === "Enter") doLogin();
   });
   document.getElementById("emailInput").addEventListener("keydown", e => {
     if (e.key === "Enter") document.getElementById("passInput").focus();
+  });
+  document.getElementById("np2").addEventListener("keydown", e => {
+    if (e.key === "Enter") doSetPass();
   });
 });
 </script>
