@@ -254,6 +254,11 @@
       <div class="toggle on" id="metroTog" onclick="toggleMetro()"></div>
     </div>
     <div class="ctrl-row">
+      <span class="lab">Volume metrônomo</span>
+      <input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.5" oninput="setMetroVol(this.value)">
+      <span class="bpm-val" id="metroVolVal">50%</span>
+    </div>
+    <div class="ctrl-row">
       <span class="lab">Jeito de tocar</span>
       <div class="seg" id="styleSeg" style="flex:1;max-width:230px">
         <button class="on" data-s="batido" onclick="setStyle('batido',this)">Batido</button>
@@ -600,11 +605,13 @@ function setSampleStatus(msg, cls) {
 }
 
 /* ===================== ÁUDIO ===================== */
-let actx, master;
+let actx, master, metroGain;
 function audioInit() {
   if (actx) return;
   actx = new (window.AudioContext||window.webkitAudioContext)();
   master = actx.createGain(); master.gain.value = 0.85; master.connect(actx.destination);
+  metroGain = actx.createGain(); metroGain.gain.value = 0.5; metroGain.connect(master);
+  loadSamples();
 }
 
 const SEMI = {C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
@@ -657,9 +664,13 @@ function click(t, accent) {
   const o = actx.createOscillator(), g = actx.createGain();
   o.frequency.value = accent ? 900 : 600; o.type = "sine";
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.linearRampToValueAtTime(accent ? 0.10 : 0.06, t + 0.006);
+  g.gain.linearRampToValueAtTime(accent ? 0.18 : 0.10, t + 0.006);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.08);
+  o.connect(g); g.connect(metroGain); o.start(t); o.stop(t + 0.08);
+}
+function setMetroVol(v) {
+  if (metroGain) metroGain.gain.value = +v;
+  document.getElementById("metroVolVal").textContent = Math.round(+v * 100) + "%";
 }
 
 /* ===================== PIANO (render) ===================== */
