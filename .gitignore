@@ -1,0 +1,6 @@
+# Áudios e samples ficam no Supabase Storage
+audio/
+SAMPLE PIANO/
+
+# Sistema
+.DS_Store

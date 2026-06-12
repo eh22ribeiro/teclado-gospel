@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Teclado Gospel em 21 Dias — Reforço Visual</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0f1020; --bg2:#171831; --card:#1d1f3d; --card2:#23264a;
+    --ink:#f4f3ff; --muted:#a6a8d0; --line:#2e3160;
+    --gold:#f2b705; --gold2:#ffd45e;
+    --f1:#e5484d; --f3:#f2a900; --f5:#4c6ef5;
+    --ok:#36b37e;
+    --shadow:0 14px 40px rgba(0,0,0,.45);
+    --r:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -10%, #232552 0%, var(--bg) 60%);
+    color:var(--ink); min-height:100vh;
+  }
+  .wrap{max-width:780px;margin:0 auto;padding:18px 16px 60px}
+  .hidden{display:none!important}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .brand .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--gold),#e08a00);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#2a1d00;font-size:20px;box-shadow:var(--shadow)}
+  .brand h1{font-size:18px;margin:0;line-height:1.1}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+  /* LOGIN */
+  #login{min-height:80vh;display:flex;align-items:center;justify-content:center}
+  .login-card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:34px 26px;width:100%;max-width:380px;box-shadow:var(--shadow);text-align:center}
+  .login-card .logo-lg{width:64px;height:64px;border-radius:18px;margin:0 auto 16px;background:linear-gradient(135deg,var(--gold),#e08a00);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#2a1d00}
+  .login-card h2{margin:0 0 4px;font-size:21px}
+  .login-card .sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+  .field{text-align:left;margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:#12132a;color:var(--ink);font-size:15px;outline:none}
+  .field input:focus{border-color:var(--gold)}
+  .btn-primary{width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--gold),#e8a200);color:#241900;font-weight:800;font-size:15px;margin-top:6px;box-shadow:0 8px 22px rgba(242,183,5,.32)}
+  .btn-primary:active{transform:translateY(1px)}
+  .login-err{color:#ff8b8b;font-size:13px;margin-top:12px;min-height:18px}
+  .login-ok{color:var(--ok);font-size:13px;margin-top:12px}
+  .btn-link{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;padding:0}
+  .btn-link:hover{color:var(--ink)}
+  .btn-primary:disabled{opacity:.55;cursor:not-allowed}
+
+  /* HOME */
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+  .ghost{background:transparent;color:var(--muted);border:1px solid var(--line);padding:8px 12px;border-radius:10px;font-size:12px}
+  .section-title{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:26px 4px 12px}
+  .song-grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .song{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:.15s;text-align:left;width:100%}
+  .song:hover{border-color:var(--gold);transform:translateY(-1px)}
+  .song .num{flex:0 0 40px;height:40px;border-radius:11px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold2)}
+  .song .meta{flex:1}
+  .song .meta b{display:block;font-size:15px}
+  .song .meta span{font-size:12px;color:var(--muted)}
+  .song .chords{font-size:11px;color:var(--muted);font-weight:600}
+  .song .arrow{color:var(--muted);font-size:20px}
+  .chip-row{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 8px;font-weight:700;font-size:14px;min-width:62px;text-align:center;color:var(--ink)}
+  .chip small{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-top:2px}
+  .chip:hover{border-color:var(--gold)}
+
+  /* PLAYER */
+  .player-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .back{background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--ink);width:38px;height:38px;font-size:18px;display:flex;align-items:center;justify-content:center}
+  .player-head h2{margin:0;font-size:19px}
+  .player-head p{margin:0;font-size:12px;color:var(--muted)}
+  .now{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:14px 0;text-align:center}
+  .now .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .now .chord-name{font-size:34px;font-weight:800;margin:2px 0 2px;color:var(--gold2)}
+  .now .chord-notes{font-size:13px;color:var(--muted)}
+  .beats{display:flex;justify-content:center;gap:8px;margin-top:12px}
+  .beat{width:13px;height:13px;border-radius:50%;background:var(--line);transition:.05s}
+  .beat.on{background:var(--gold);transform:scale(1.35);box-shadow:0 0 12px var(--gold)}
+  .progline{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0 0}
+  .progline .pc{font-size:12px;font-weight:700;color:var(--muted);padding:4px 9px;border-radius:8px;border:1px solid var(--line)}
+  .progline .pc.cur{color:#241900;background:var(--gold);border-color:var(--gold)}
+
+  /* tab switcher */
+  .view-tabs{display:flex;background:#12132a;border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px;margin:14px 0}
+  .view-tab{flex:1;padding:10px;border-radius:8px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;transition:.12s}
+  .view-tab.on{background:var(--card2);color:var(--ink)}
+
+  /* piano */
+  .piano-wrap{margin:18px 0;overflow-x:auto;padding-bottom:6px}
+  .piano{position:relative;height:170px;min-width:520px;border-radius:12px;background:#0a0b18;padding:8px 8px 0;border:1px solid var(--line)}
+  .white{position:absolute;bottom:8px;top:8px;border-radius:0 0 7px 7px;background:linear-gradient(#fdfdff,#e9e9f2);border:1px solid #c7c7d6;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;font-size:10px;color:#6a6a80;font-weight:700}
+  .black{position:absolute;top:8px;height:62%;border-radius:0 0 5px 5px;background:linear-gradient(#3a3a46,#16161f);border:1px solid #000;z-index:3;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:9px;color:#cfcfdd;font-weight:700}
+  .key.lit{box-shadow:0 0 0 2px #fff inset, 0 0 18px rgba(255,255,255,.25)}
+  .key .fdot{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;opacity:0;transition:.08s}
+  .key.lit .fdot{opacity:1}
+  .black .fdot{top:6px;width:18px;height:18px;font-size:11px}
+  .f1{background:var(--f1)} .f3{background:var(--f3);color:#241900} .f5{background:var(--f5)}
+  .white.lit.l1{background:linear-gradient(#ffe1e2,#ffc9cb)}
+  .white.lit.l3{background:linear-gradient(#ffeec2,#ffe09a)}
+  .white.lit.l5{background:linear-gradient(#d9e1ff,#bcc9ff)}
+  .black.lit{filter:brightness(1.15)}
+
+  /* controls */
+  .controls{display:flex;flex-direction:column;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .ctrl-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .ctrl-row .lab{font-size:13px;color:var(--muted)}
+  .play-big{width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,var(--gold),#e8a200);color:#241900;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .play-big.playing{background:linear-gradient(135deg,#ff6b6b,#e23b3b);color:#fff}
+  .toggle{position:relative;width:52px;height:30px;border-radius:30px;background:var(--line);transition:.15s;flex:0 0 auto}
+  .toggle.on{background:var(--ok)}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.15s}
+  .toggle.on::after{left:25px}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;background:var(--line);flex:1;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .bpm-val{font-weight:800;color:var(--gold2);min-width:64px;text-align:right;font-size:14px}
+  .seg{display:flex;background:#12132a;border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+  .seg button{flex:1;padding:9px;border-radius:8px;background:transparent;color:var(--muted);font-weight:700;font-size:13px}
+  .seg button.on{background:var(--gold);color:#241900}
+  .legend{display:flex;gap:16px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .legend i{width:14px;height:14px;border-radius:50%;display:inline-block}
+
+  /* study */
+  .study-step{text-align:center;font-size:15px;color:var(--ink);min-height:24px;margin:6px 0 0;font-weight:600}
+  .study-step b{color:var(--gold2)}
+  .footnote{font-size:11px;color:var(--muted);text-align:center;margin-top:26px;line-height:1.5}
+  .sample-status{font-size:11px;color:var(--muted);text-align:center;min-height:14px;transition:.3s}
+  .sample-status.ok{color:var(--ok)}
+  .sample-status.err{color:#ff8b8b}
+
+  /* CIFRA */
+  .cifra-wrap{padding:4px 0 10px}
+  .cifra-section{margin-bottom:20px}
+  .cifra-section-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .cifra-section-label::after{content:"";flex:1;height:1px;background:var(--line)}
+  .cifra-line{display:flex;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;line-height:1}
+  .cifra-word{display:inline-flex;flex-direction:column;align-items:flex-start;margin-right:4px}
+  .cifra-chord{font-size:13px;font-weight:800;color:var(--gold2);line-height:1;min-height:18px;padding-bottom:2px;cursor:pointer;transition:.1s}
+  .cifra-chord:hover{color:var(--gold)}
+  .cifra-chord:empty{color:transparent;pointer-events:none}
+  .cifra-text{font-size:16px;color:var(--ink);line-height:1.3;white-space:pre}
+  .cifra-hint{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+  .cifra-hint b{color:var(--ink)}
+
+  /* AUDIO PLAYER */
+  .cifra-player{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+  .cp-btn{width:36px;height:36px;border-radius:50%;flex:0 0 36px;display:flex;align-items:center;justify-content:center;font-size:15px;border:none;cursor:pointer;background:var(--gold);color:#241900;font-weight:700;transition:.12s}
+  .cp-btn:active{opacity:.75}
+  .cp-progress-wrap{flex:1;height:6px;border-radius:6px;background:var(--line);cursor:pointer;position:relative;overflow:hidden}
+  .cp-progress-fill{height:100%;border-radius:6px;background:var(--gold);width:0%;pointer-events:none}
+  .cp-time{font-size:11px;color:var(--muted);min-width:36px;text-align:right;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <div class="logo-lg">🎹</div>
+    <h2>Teclado Gospel em 21 Dias</h2>
+    <div class="sub">Área do aluno · reforço visual</div>
+    <div class="field"><label>E-mail</label><input id="emailInput" type="email" autocomplete="email" placeholder="seu e-mail"></div>
+    <div class="field"><label>Senha</label><input id="passInput" type="password" autocomplete="current-password" placeholder="sua senha"></div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="loginErr"></div>
+    <div id="resetWrap" style="margin-top:14px;display:none">
+      <button class="btn-link" onclick="doReset()">Receber link para redefinir senha</button>
+    </div>
+    <button class="btn-link" style="margin-top:10px" onclick="toggleReset()">Esqueci minha senha</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="wrap hidden">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">🎹</div>
+      <div><h1>Suas músicas</h1><p>Toque junto, veja os acordes e treine no tempo</p></div>
+    </div>
+    <button class="ghost" onclick="logout()">Sair</button>
+  </div>
+  <div class="section-title">6 louvores do método</div>
+  <div class="song-grid" id="songGrid"></div>
+  <div class="section-title">Estudar acordes (dedo por dedo)</div>
+  <div class="chip-row" id="chordChips"></div>
+  <div class="footnote">Este site é um reforço visual do ebook. O som usa amostras de piano real.<br>Para cantar junto, use as gravações originais dos artistas.</div>
+</div>
+
+<!-- PLAYER -->
+<div id="player" class="wrap hidden">
+  <div class="player-head">
+    <button class="back" onclick="goHome()">‹</button>
+    <div><h2 id="pTitle"></h2><p id="pSub"></p></div>
+  </div>
+
+  <div class="now">
+    <div class="lbl">Acorde agora</div>
+    <div class="chord-name" id="curChord">—</div>
+    <div class="chord-notes" id="curNotes"></div>
+    <div class="beats" id="beats"></div>
+    <div class="progline" id="progline"></div>
+  </div>
+
+  <div class="view-tabs">
+    <button class="view-tab on" id="tabPiano" onclick="switchTab('piano')">🎹 Piano</button>
+    <button class="view-tab" id="tabCifra" onclick="switchTab('cifra')">🎵 Cifra</button>
+  </div>
+
+  <div id="panelPiano">
+    <div class="piano-wrap"><div class="piano" id="piano"></div></div>
+    <div class="legend">
+      <span><i style="background:var(--f1)"></i> Dedo 1 (polegar)</span>
+      <span><i style="background:var(--f3)"></i> Dedo 3 (do meio)</span>
+      <span><i style="background:var(--f5)"></i> Dedo 5 (mindinho)</span>
+    </div>
+  </div>
+
+  <div id="panelCifra" class="hidden">
+    <div class="cifra-hint"><b>Dica:</b> clique em qualquer acorde para ouvi-lo. Os acordes seguem a progressão simplificada do ebook.</div>
+    <div id="cifraPlayerWrap"></div>
+    <div class="cifra-wrap" id="cifraContent"></div>
+  </div>
+
+  <div class="controls" style="margin-top:18px">
+    <div class="sample-status" id="sampleStatus"></div>
+    <button class="play-big" id="playBtn" onclick="togglePlay()">▶ Tocar</button>
+    <div class="ctrl-row">
+      <span class="lab">Velocidade</span>
+      <input type="range" id="bpm" min="40" max="120" value="70" oninput="onBpm(this.value)">
+      <span class="bpm-val" id="bpmVal">70 bpm</span>
+    </div>
+    <div class="ctrl-row">
+      <span class="lab">Metrônomo</span>
+      <div class="toggle on" id="metroTog" onclick="toggleMetro()"></div>
+    </div>
+    <div class="ctrl-row">
+      <span class="lab">Jeito de tocar</span>
+      <div class="seg" id="styleSeg" style="flex:1;max-width:230px">
+        <button class="on" data-s="batido" onclick="setStyle('batido',this)">Batido</button>
+        <button data-s="levada" onclick="setStyle('levada',this)">Levada</button>
+      </div>
+    </div>
+  </div>
+  <div class="footnote">Comece devagar. A velocidade vem sozinha — o importante é cair em cima do tempo.</div>
+</div>
+
+<!-- STUDY -->
+<div id="study" class="wrap hidden">
+  <div class="player-head">
+    <button class="back" onclick="goHome()">‹</button>
+    <div><h2 id="sTitle"></h2><p id="sSub">Veja cada dedo entrar, um de cada vez</p></div>
+  </div>
+  <div class="now">
+    <div class="lbl">Estudando</div>
+    <div class="chord-name" id="sChord">—</div>
+    <div class="chord-notes" id="sNotes"></div>
+    <div class="study-step" id="sStep"></div>
+  </div>
+  <div class="piano-wrap"><div class="piano" id="sPiano"></div></div>
+  <div class="legend">
+    <span><i style="background:var(--f1)"></i> Dedo 1</span>
+    <span><i style="background:var(--f3)"></i> Dedo 3</span>
+    <span><i style="background:var(--f5)"></i> Dedo 5</span>
+  </div>
+  <div class="controls" style="margin-top:18px">
+    <button class="play-big" id="sPlayBtn" onclick="toggleStudy()">▶ Mostrar dedilhado</button>
+    <div class="ctrl-row">
+      <span class="lab">Velocidade do estudo</span>
+      <input type="range" id="sSpeed" min="40" max="110" value="70" oninput="document.getElementById('sSpeedVal').textContent=this.value+' bpm'">
+      <span class="bpm-val" id="sSpeedVal">70 bpm</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== SUPABASE ===================== */
+const SUPA_URL  = "https://wkodywuaebvkmczbhgmn.supabase.co";
+const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indrb2R5d3VhZWJ2a21jemJoZ21uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTkxMjksImV4cCI6MjA5Njc5NTEyOX0.GUDZWY9H6COYmxw0bA__r84dAPQe1kuSQLgidUfuNUU";
+const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+
+/* ===================== ACORDES ===================== */
+const FNAME = {1:"polegar",2:"indicador",3:"do meio",4:"anelar",5:"mindinho"};
+const CHORDS = {
+  C:  {label:"Dó maior", sym:"C",  notes:[["C4",1],["E4",3],["G4",5]]},
+  D:  {label:"Ré maior", sym:"D",  notes:[["D4",1],["F#4",3],["A4",5]]},
+  F:  {label:"Fá maior", sym:"F",  notes:[["F4",1],["A4",3],["C5",5]]},
+  G:  {label:"Sol maior",sym:"G",  notes:[["G4",1],["B4",3],["D5",5]]},
+  A:  {label:"Lá maior", sym:"A",  notes:[["A4",1],["C#5",3],["E5",5]]},
+  Am: {label:"Lá menor", sym:"Am", notes:[["A4",1],["C5",3],["E5",5]]},
+  Bm: {label:"Si menor", sym:"Bm", notes:[["B4",1],["D5",3],["F#5",5]]},
+  Dm: {label:"Ré menor", sym:"Dm", notes:[["D4",1],["F4",3],["A4",5]]},
+  Em: {label:"Mi menor", sym:"Em", notes:[["E4",1],["G4",3],["B4",5]]},
+  Bb: {label:"Si bemol", sym:"Bb", notes:[["A#4",1],["D5",3],["F5",5]]},
+};
+
+/* ===================== MÚSICAS =====================
+   Letras: Verso 1 + Refrão — acordes seguem o ebook
+   Áudio: arquivo na pasta audio/ (apenas música completa por enquanto)
+   base e keys = null até você fornecer os arquivos
+*/
+const SONGS = [
+  {
+    n:1, title:"Que Amor É Esse", tom:"Sol", bpm:70,
+    prog:["G","C"],
+    // timeline: [{t: segundos, chord: "X"}] — ajuste ouvindo com o botão ⏱
+    timeline:[
+      {t:0,   chord:"G"},
+      {t:14,  chord:"C"},
+      {t:27,  chord:"G"},
+      {t:41,  chord:"C"},
+      {t:55,  chord:"G"},
+      {t:68,  chord:"C"},
+      {t:82,  chord:"G"},
+      {t:96,  chord:"C"},
+      {t:110, chord:"G"},
+    ],
+    audio:{
+      full:"Que Amor É Esse - Luma Elpidio (Video Oficial) - Luma Elpidio (youtube).mp3",
+      base:null, keys:null
+    },
+    lyrics:[
+      {label:"Verso 1", lines:[
+        "[C]Tu me dás a paz que ex[G]cede",
+        "[C]Todo entendimento hu[G]mano",
+        "[C]E quando planejo me mostras",
+        "[G]Que é bem melhor o Teu plano",
+        "[C]Com misericórdia me cobres",
+        "[G]Derramando graça em mim",
+        "[C]Eu desconheço um outro a[G]mor assim",
+      ]},
+      {label:"Refrão", lines:[
+        "[C]Que amor é esse?",
+        "Graça incal[G]culável",
+        "[C]Não tem interesse",
+        "[G]Não quer nada em troca",
+        "[C]Tua vontade é boa",
+        "[G]Perfeita e agradável",
+        "[C]Para mim, [G]para mim",
+      ]},
+    ]
+  },
+  {
+    n:2, title:"Deus Me Ama", tom:"Dó", bpm:72,
+    prog:["C","F"],
+    timeline:[
+      {t:0,   chord:"C"},
+      {t:13,  chord:"F"},
+      {t:27,  chord:"C"},
+      {t:40,  chord:"F"},
+      {t:54,  chord:"C"},
+      {t:67,  chord:"F"},
+      {t:81,  chord:"C"},
+      {t:94,  chord:"F"},
+    ],
+    audio:{
+      full:"Deus Me Ama - Thalles Roberto (youtube).mp3",
+      base:null, keys:null
+    },
+    lyrics:[
+      {label:"Verso 1", lines:[
+        "[C]Mesmo sendo assim pobre e pecador [F]Deus me ama",
+        "[C]Mesmo sendo falho, mesmo sem merecer [F]Deus me ama",
+        "[C]Se eu estou forte, se eu estou de pé [F]Deus me ama",
+        "[C]Se eu estou fraco, se eu estou caído",
+        "[F]Ele não deixa de me amar",
+      ]},
+      {label:"Refrão", lines:[
+        "[C]Deus me ama",
+        "[F]O seu amor é tão grande, incondicional",
+        "[C]Deus me ama",
+        "[F]E ele está sempre de braços abertos pra mim",
+      ]},
+    ]
+  },
+  {
+    n:3, title:"Oceanos", tom:"Ré", bpm:68,
+    prog:["D","A","Bm","G"],
+    timeline:[
+      {t:0,   chord:"D"},
+      {t:14,  chord:"A"},
+      {t:28,  chord:"Bm"},
+      {t:42,  chord:"G"},
+      {t:57,  chord:"D"},
+      {t:71,  chord:"A"},
+      {t:85,  chord:"Bm"},
+      {t:99,  chord:"G"},
+      {t:113, chord:"D"},
+      {t:127, chord:"A"},
+      {t:141, chord:"Bm"},
+      {t:155, chord:"G"},
+    ],
+    audio:{
+      full:"Ana Nóbrega - Oceanos (Onde Meus Pés Podem Falhar) - Oceans Hillsong versão Português - Ana Nóbrega (youtube).mp3",
+      base:null, keys:null
+    },
+    lyrics:[
+      {label:"Verso 1", lines:[
+        "[Bm]Tua voz me chama sobre as [A]águas [D]",
+        "[A]Onde os meus pés podem [G]falhar",
+        "[Bm]E ali te encontro no mis[A]tério [D]",
+        "[A]Em meio ao mar, con[G]fiarei",
+      ]},
+      {label:"Refrão", lines:[
+        "[G]Ao teu nome cla[D]marei",
+        "[G]E além das ondas ol[A]harei",
+        "[G]Se o mar crescer",
+        "[D]Somente em Ti des[A]cansarei",
+        "[G]Pois eu sou teu e Tu [A]és [Bm]meu",
+      ]},
+    ]
+  },
+  {
+    n:4, title:"Quão Grande É o Meu Deus", tom:"Sol", bpm:64,
+    prog:["G","D","Em","C"],
+    timeline:[
+      {t:0,   chord:"G"},
+      {t:15,  chord:"D"},
+      {t:30,  chord:"Em"},
+      {t:45,  chord:"C"},
+      {t:60,  chord:"G"},
+      {t:75,  chord:"D"},
+      {t:90,  chord:"Em"},
+      {t:105, chord:"C"},
+      {t:120, chord:"G"},
+      {t:135, chord:"D"},
+      {t:150, chord:"Em"},
+      {t:165, chord:"C"},
+    ],
+    audio:{
+      full:"Quão Grande É O Meu Deus   - Soraya Moraes - Memory Line (youtube).mp3",
+      base:null, keys:null
+    },
+    lyrics:[
+      {label:"Verso 1", lines:[
+        "[G]Com esplendor de um Rei",
+        "[Em]Em majestade e luz",
+        "[C]Faz a Terra se ale[D]grar",
+        "[G]Ele é a própria luz",
+        "[Em]E as trevas vão fugir",
+        "[C]Tremer com sua [D]voz",
+      ]},
+      {label:"Refrão", lines:[
+        "[G]Quão grande é o meu Deus",
+        "[D]Cantarei quão grande é o meu [Em]Deus",
+        "[C]E todos hão de ver",
+        "[D]Quão grande é o meu [G]Deus",
+      ]},
+    ]
+  },
+  {
+    n:5, title:"Ousado Amor", tom:"Fá", bpm:68,
+    prog:["F","C","Dm","Bb"],
+    levada:true,
+    timeline:[
+      {t:0,   chord:"F"},
+      {t:14,  chord:"C"},
+      {t:28,  chord:"Dm"},
+      {t:42,  chord:"Bb"},
+      {t:57,  chord:"F"},
+      {t:71,  chord:"C"},
+      {t:85,  chord:"Dm"},
+      {t:99,  chord:"Bb"},
+      {t:113, chord:"F"},
+      {t:127, chord:"C"},
+      {t:141, chord:"Dm"},
+      {t:155, chord:"Bb"},
+    ],
+    audio:{
+      full:"Ousado Amor (Clipe Oficial) - Isaias Saad - Isaias Saad (youtube).mp3",
+      base:null, keys:null
+    },
+    lyrics:[
+      {label:"Verso 1", lines:[
+        "[Dm]Antes de eu falar",
+        "[C]Tu cantavas sobre [Bb]mim",
+        "[Dm]Tu tens sido tão, tão [C]bom pra [Bb]mim",
+        "[Dm]Antes de eu respirar",
+        "[C]Sopraste Tua vida em [Bb]mim",
+        "[Dm]Tu tens sido tão, tão [C]bom pra [Bb]mim",
+      ]},
+      {label:"Refrão", lines:[
+        "[Dm]Oh impressionante, [C]infinito e ousado [Bb]amor de [F]Deus",
+        "[Dm]Oh, que deixa as noventa e nove [C]só pra me en[Bb]contrar [F]",
+        "[Dm]Não posso comprá-Lo e nem merecê-Lo, [C]mesmo assim Se en[Bb]tregou [F]",
+        "[Dm]Oh impressionante, [C]infinito e ousado a[Bb]mor de [F]Deus",
+      ]},
+    ]
+  },
+  {
+    n:6, title:"Porque Ele Vive", tom:"Dó", bpm:72,
+    prog:["C","F","G","C"],
+    timeline:[
+      {t:0,   chord:"C"},
+      {t:13,  chord:"F"},
+      {t:27,  chord:"G"},
+      {t:40,  chord:"C"},
+      {t:54,  chord:"C"},
+      {t:67,  chord:"F"},
+      {t:81,  chord:"G"},
+      {t:94,  chord:"C"},
+      {t:108, chord:"C"},
+      {t:121, chord:"F"},
+      {t:135, chord:"G"},
+      {t:148, chord:"C"},
+    ],
+    audio:{
+      full:"Porque Ele Vive __ Victor Valente  Conferência Dunamis 2017 - Dunamis Music (youtube).mp3",
+      base:null, keys:null
+    },
+    lyrics:[
+      {label:"Verso 1", lines:[
+        "[F]Deus enviou Seu Filho amado",
+        "[C]Para morrer em meu lu[G]gar",
+        "[C]Na cruz morreu por meu pe[F]cado",
+        "[C]Mas ressurgiu e vivo com o Pai es[G]tá",
+      ]},
+      {label:"Refrão", lines:[
+        "[C]Porque Ele vive",
+        "[F]Posso crer no amanhã",
+        "[C]Porque Ele vive",
+        "[G]Temor não há",
+        "[C]Mas eu bem sei, eu sei",
+        "[F]Que a minha vida",
+        "[C]Está nas mãos do meu Je[G]sus",
+        "[C]Que vivo está",
+      ]},
+    ]
+  },
+];
+
+/* ===================== SAMPLES ===================== */
+const NOTE_TO_PT = {
+  "C":"Dó","C#":"Dó sustenido","D":"Ré","D#":"Ré sustenido",
+  "E":"Mi","F":"Fá","F#":"Fá sustenido","G":"Sol",
+  "G#":"Sol sustenido","A":"Lá","A#":"Lá sustenido","B":"Si"
+};
+const CHROMATIC = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const BUFFERS_SUSTAIN = {}, BUFFERS_STACCATO = {};
+let samplesReady = false, samplesAttempted = false;
+
+function sampleURL(note, type) {
+  const pt = NOTE_TO_PT[note];
+  const file = type === "sustain" ? pt + " com Sustain.mp3" : pt + " staccato.mp3";
+  return STORAGE + "/samples/" + encodeURIComponent(file);
+}
+
+async function loadSamples() {
+  if (samplesAttempted) return;
+  samplesAttempted = true;
+  setSampleStatus("Carregando sons do piano...", "");
+  const loads = CHROMATIC.map(async note => {
+    try {
+      const [rS, rT] = await Promise.all([fetch(sampleURL(note,"sustain")), fetch(sampleURL(note,"staccato"))]);
+      const [abS, abT] = await Promise.all([rS.arrayBuffer(), rT.arrayBuffer()]);
+      const [bS, bT] = await Promise.all([actx.decodeAudioData(abS), actx.decodeAudioData(abT)]);
+      BUFFERS_SUSTAIN[note] = bS; BUFFERS_STACCATO[note] = bT;
+    } catch(e) { /* fallback to synth */ }
+  });
+  await Promise.all(loads);
+  samplesReady = Object.keys(BUFFERS_SUSTAIN).length > 0;
+  if (samplesReady) {
+    setSampleStatus("Piano real carregado ✓", "ok");
+    setTimeout(() => setSampleStatus("",""), 3000);
+  } else {
+    setSampleStatus("Som sintetizado (sirva via servidor HTTP para piano real)", "err");
+  }
+}
+
+function setSampleStatus(msg, cls) {
+  const el = document.getElementById("sampleStatus");
+  if (el) { el.textContent = msg; el.className = "sample-status" + (cls ? " "+cls : ""); }
+}
+
+/* ===================== ÁUDIO ===================== */
+let actx, master;
+function audioInit() {
+  if (actx) return;
+  actx = new (window.AudioContext||window.webkitAudioContext)();
+  master = actx.createGain(); master.gain.value = 0.85; master.connect(actx.destination);
+  loadSamples();
+}
+
+const SEMI = {C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
+function noteFreq(note) {
+  const m = note.match(/^([A-G]#?)(\d)$/);
+  return 440 * Math.pow(2, (SEMI[m[1]] + (parseInt(m[2])-4)*12 - 9) / 12);
+}
+function playToneSynth(f, t, dur, gain) {
+  const o = actx.createOscillator(), o2 = actx.createOscillator(), g = actx.createGain();
+  o.type="triangle"; o2.type="sine"; o.frequency.value=f; o2.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(gain,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); o2.connect(g); g.connect(master);
+  o.start(t); o2.start(t); o.stop(t+dur+0.05); o2.stop(t+dur+0.05);
+}
+function playBuffer(note, t, dur, gain, staccato) {
+  const m = note.match(/^([A-G]#?)(\d)$/); if (!m) return;
+  const buf = staccato ? BUFFERS_STACCATO[m[1]] : BUFFERS_SUSTAIN[m[1]];
+  if (!buf) { playToneSynth(noteFreq(note), t, dur, gain*0.16); return; }
+  const src = actx.createBufferSource(), g = actx.createGain();
+  src.buffer = buf; src.playbackRate.value = Math.pow(2, parseInt(m[2])-4);
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(gain,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+Math.min(dur, buf.duration-0.05));
+  src.connect(g); g.connect(master);
+  src.start(t); src.stop(t+Math.min(dur+0.1, buf.duration));
+}
+function playChordAt(sym, t, dur) {
+  CHORDS[sym].notes.forEach((nf,i) => playBuffer(nf[0], t+i*0.012, dur, 0.55));
+}
+function playChordNow(sym) {
+  audioInit(); if (actx.state==="suspended") actx.resume();
+  playChordAt(sym, actx.currentTime+0.02, 1.8);
+}
+function click(t, accent) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = accent?1500:1000; o.type="square";
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(accent?0.22:0.13,t+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.06);
+}
+
+/* ===================== PIANO (render) ===================== */
+const WHITES = ["C4","D4","E4","F4","G4","A4","B4","C5","D5","E5","F5","G5","A5"];
+const BLACK_AFTER = {"C":"C#","D":"D#","F":"F#","G":"G#","A":"A#"};
+function buildPiano(el) {
+  el.innerHTML="";
+  const nW=WHITES.length, wPct=100/nW, bW=wPct*0.62;
+  WHITES.forEach((note,i)=>{
+    const k=document.createElement("div");
+    k.className="white key"; k.dataset.note=note;
+    k.style.left=(i*wPct)+"%"; k.style.width=wPct+"%";
+    const fd=document.createElement("div"); fd.className="fdot"; k.appendChild(fd);
+    const names={C:"Dó",D:"Ré",E:"Mi",F:"Fá",G:"Sol",A:"Lá",B:"Si"};
+    const t=document.createElement("span"); t.textContent=names[note.replace(/\d/,"")]; t.style.position="relative"; k.appendChild(t);
+    el.appendChild(k);
+    const root=note.replace(/\d/,""), oct=note.match(/\d/)[0];
+    if (BLACK_AFTER[root] && i<nW-1) {
+      const b=document.createElement("div"); b.className="black key"; b.dataset.note=BLACK_AFTER[root]+oct;
+      b.style.left=((i+1)*wPct-bW/2)+"%"; b.style.width=bW+"%";
+      const bfd=document.createElement("div"); bfd.className="fdot"; b.appendChild(bfd);
+      el.appendChild(b);
+    }
+  });
+}
+function clearKeys(el) {
+  el.querySelectorAll(".key").forEach(k=>{
+    k.classList.remove("lit","l1","l3","l5");
+    const fd=k.querySelector(".fdot"); fd.className="fdot"; fd.textContent="";
+  });
+}
+function litChord(el, sym) {
+  clearKeys(el);
+  CHORDS[sym].notes.forEach(([note,finger])=>{
+    const k=el.querySelector('.key[data-note="'+note+'"]'); if (!k) return;
+    k.classList.add("lit","l"+finger);
+    const fd=k.querySelector(".fdot"); fd.className="fdot f"+finger; fd.textContent=finger;
+  });
+}
+function litNote(el, note, finger) {
+  const k=el.querySelector('.key[data-note="'+note+'"]'); if (!k) return;
+  k.classList.add("lit","l"+finger);
+  const fd=k.querySelector(".fdot"); fd.className="fdot f"+finger; fd.textContent=finger;
+}
+function noteToPt(n) {
+  return {C:"Dó",D:"Ré",E:"Mi",F:"Fá",G:"Sol",A:"Lá",B:"Si","C#":"Dó#","D#":"Ré#","F#":"Fá#","G#":"Sol#","A#":"Sib"}[n]||n;
+}
+
+/* ===================== PLAYER (sequencer) ===================== */
+let P = {song:null,bpm:70,metro:true,style:"batido",playing:false,
+         beatIdx:0,chordIdx:0,beatInChord:0,nextTime:0,timer:null,ui:[]};
+const BEATS_PER_CHORD=4;
+const pianoEl=()=>document.getElementById("piano");
+
+function openSong(idx) {
+  const s=SONGS[idx]; P.song=s;
+  P.chordIdx=0; P.beatInChord=0; P.beatIdx=0;
+  P.bpm=s.bpm; P.style=s.levada?"levada":"batido"; P.metro=true;
+  document.getElementById("pTitle").textContent="♪ "+s.title;
+  document.getElementById("pSub").textContent="Tom de "+s.tom+" · "+s.prog.join(" → ");
+  document.getElementById("bpm").value=s.bpm;
+  document.getElementById("bpmVal").textContent=s.bpm+" bpm";
+  document.getElementById("metroTog").classList.add("on");
+  document.querySelectorAll("#styleSeg button").forEach(b=>b.classList.toggle("on",b.dataset.s===P.style));
+  buildPiano(pianoEl()); buildBeats(); buildProgline(); showCur(0);
+  switchTab("piano");
+  renderCifra(idx);
+  renderCifraPlayer(idx);
+  show("player");
+}
+function buildBeats() {
+  const b=document.getElementById("beats"); b.innerHTML="";
+  for(let i=0;i<BEATS_PER_CHORD;i++){const d=document.createElement("div");d.className="beat";b.appendChild(d);}
+}
+function buildProgline() {
+  const pl=document.getElementById("progline"); pl.innerHTML="";
+  P.song.prog.forEach((c,i)=>{
+    const s=document.createElement("span"); s.className="pc"; s.textContent=CHORDS[c].sym; s.dataset.i=i; pl.appendChild(s);
+  });
+}
+function showCur(ci) {
+  const sym=P.song.prog[ci];
+  document.getElementById("curChord").textContent=CHORDS[sym].sym;
+  document.getElementById("curNotes").textContent=CHORDS[sym].label+" · "+CHORDS[sym].notes.map(n=>noteToPt(n[0].replace(/\d/,""))).join(" – ");
+  litChord(pianoEl(),sym);
+  document.querySelectorAll("#progline .pc").forEach(p=>p.classList.toggle("cur",+p.dataset.i===ci));
+}
+function onBpm(v){P.bpm=+v;document.getElementById("bpmVal").textContent=v+" bpm";}
+function toggleMetro(){P.metro=!P.metro;document.getElementById("metroTog").classList.toggle("on",P.metro);}
+function setStyle(s,btn){P.style=s;document.querySelectorAll("#styleSeg button").forEach(b=>b.classList.remove("on"));btn.classList.add("on");}
+
+function togglePlay(){P.playing?stopPlay():startPlay();}
+function startPlay() {
+  audioInit(); if(actx.state==="suspended")actx.resume();
+  P.playing=true; P.beatIdx=0; P.chordIdx=0; P.beatInChord=0;
+  P.nextTime=actx.currentTime+0.1;
+  document.getElementById("playBtn").innerHTML="⏸ Pausar";
+  document.getElementById("playBtn").classList.add("playing");
+  P.timer=setInterval(scheduler,25);
+}
+function stopPlay() {
+  P.playing=false; clearInterval(P.timer);
+  P.ui.forEach(id=>clearTimeout(id)); P.ui=[];
+  document.getElementById("playBtn").innerHTML="▶ Tocar";
+  document.getElementById("playBtn").classList.remove("playing");
+  document.querySelectorAll("#beats .beat").forEach(b=>b.classList.remove("on"));
+}
+function scheduler() {
+  const spb=60/P.bpm;
+  while(P.nextTime < actx.currentTime+0.12) {
+    const t=P.nextTime, ci=P.chordIdx, bic=P.beatInChord, sym=P.song.prog[ci];
+    if(P.metro) click(t, bic===0);
+    if(P.style==="batido"){
+      if(bic===0) playChordAt(sym,t,spb*BEATS_PER_CHORD*0.92);
+    } else {
+      const ns=CHORDS[sym].notes, order=[0,1,2,1];
+      playBuffer(ns[order[bic%4]][0],t,spb*0.88,0.55);
+    }
+    const delay=Math.max(0,(t-actx.currentTime)*1000);
+    const id=setTimeout(()=>{
+      document.querySelectorAll("#beats .beat").forEach((b,i)=>b.classList.toggle("on",i===bic));
+      if(bic===0) showCur(ci);
+    },delay);
+    P.ui.push(id);
+    P.beatInChord++;
+    if(P.beatInChord>=BEATS_PER_CHORD){P.beatInChord=0;P.chordIdx=(P.chordIdx+1)%P.song.prog.length;}
+    P.nextTime+=spb;
+  }
+}
+
+
+/* ===================== CIFRA PLAYER ===================== */
+let cifraAudio = null;
+
+const STORAGE = "https://wkodywuaebvkmczbhgmn.supabase.co/storage/v1/object/public";
+
+function audioFilePath(filename) {
+  return STORAGE + "/audio/" + encodeURIComponent(filename);
+}
+
+function renderCifraPlayer(songIdx) {
+  const song = SONGS[songIdx];
+  const wrap = document.getElementById("cifraPlayerWrap");
+  wrap.innerHTML = "";
+  if (cifraAudio) { cifraAudio.pause(); cifraAudio.currentTime = 0; cifraAudio = null; }
+
+  const src = song.audio?.full ? audioFilePath(song.audio.full) : null;
+  if (!src) return;
+
+  cifraAudio = new Audio(src);
+
+  wrap.innerHTML = `
+    <div class="cifra-player">
+      <button class="cp-btn" id="cpPlayBtn" onclick="cpToggle()">▶</button>
+      <div class="cp-progress-wrap" onclick="cpSeek(event)">
+        <div class="cp-progress-fill" id="cpFill"></div>
+      </div>
+      <span class="cp-time" id="cpTime">0:00</span>
+    </div>`;
+
+  cifraAudio.addEventListener("play", ()=>{
+    document.getElementById("cpPlayBtn").textContent = "⏸";
+    cpAnimate();
+  });
+  cifraAudio.addEventListener("pause", ()=>{
+    document.getElementById("cpPlayBtn").textContent = "▶";
+  });
+  cifraAudio.addEventListener("ended", ()=>{
+    cifraAudio.currentTime = 0;
+    document.getElementById("cpPlayBtn").textContent = "▶";
+    const fill = document.getElementById("cpFill");
+    if (fill) fill.style.width = "0%";
+    const time = document.getElementById("cpTime");
+    if (time) time.textContent = "0:00";
+  });
+}
+
+function cpToggle() {
+  if (!cifraAudio) return;
+  if (cifraAudio.paused) cifraAudio.play().catch(()=>{});
+  else cifraAudio.pause();
+}
+function cpSeek(e) {
+  if (!cifraAudio || !cifraAudio.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  cifraAudio.currentTime = ((e.clientX - rect.left) / rect.width) * cifraAudio.duration;
+}
+function cpAnimate() {
+  if (!cifraAudio || cifraAudio.paused) return;
+  const fill = document.getElementById("cpFill");
+  const time = document.getElementById("cpTime");
+  if (fill && cifraAudio.duration) fill.style.width = (cifraAudio.currentTime / cifraAudio.duration * 100) + "%";
+  if (time) time.textContent = fmtTime(cifraAudio.currentTime);
+  requestAnimationFrame(cpAnimate);
+}
+function fmtTime(s){const m=Math.floor(s/60),ss=Math.floor(s%60);return m+":"+String(ss).padStart(2,"0");}
+
+/* ===================== CIFRA ===================== */
+function parseCifraLine(line) {
+  const tokens=[];
+  const firstBracket=line.indexOf("[");
+  if (firstBracket>0) tokens.push({chord:"",text:line.slice(0,firstBracket)});
+  if (firstBracket<0&&line.trim()){tokens.push({chord:"",text:line});return tokens;}
+  const re=/\[([^\]]*)\]([^\[]*)/g; let m;
+  while((m=re.exec(line))!==null) tokens.push({chord:m[1],text:m[2]});
+  return tokens;
+}
+function renderCifra(songIdx) {
+  const song=SONGS[songIdx];
+  const wrap=document.getElementById("cifraContent"); wrap.innerHTML="";
+  if (!song.lyrics||!song.lyrics.length){wrap.innerHTML='<div class="cifra-hint">Letra em breve.</div>';return;}
+  song.lyrics.forEach(section=>{
+    const secEl=document.createElement("div"); secEl.className="cifra-section";
+    const lbl=document.createElement("div"); lbl.className="cifra-section-label"; lbl.textContent=section.label;
+    secEl.appendChild(lbl);
+    section.lines.forEach(rawLine=>{
+      const lineEl=document.createElement("div"); lineEl.className="cifra-line";
+      parseCifraLine(rawLine).forEach(({chord,text})=>{
+        const wordEl=document.createElement("span"); wordEl.className="cifra-word";
+        const chordEl=document.createElement("span"); chordEl.className="cifra-chord"; chordEl.textContent=chord||"";
+        if (chord&&CHORDS[chord]){chordEl.title=CHORDS[chord].label;chordEl.onclick=()=>playChordNow(chord);}
+        const textEl=document.createElement("span"); textEl.className="cifra-text"; textEl.textContent=text||" ";
+        wordEl.appendChild(chordEl); wordEl.appendChild(textEl); lineEl.appendChild(wordEl);
+      });
+      secEl.appendChild(lineEl);
+    });
+    wrap.appendChild(secEl);
+  });
+}
+
+/* ===================== TAB SWITCHER ===================== */
+function switchTab(tab) {
+  ["piano","cifra"].forEach(t=>{
+    const panel=document.getElementById("panel"+t.charAt(0).toUpperCase()+t.slice(1));
+    const tabBtn=document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1));
+    if(panel) panel.classList.toggle("hidden",t!==tab);
+    if(tabBtn) tabBtn.classList.toggle("on",t===tab);
+  });
+}
+
+/* ===================== STUDY ===================== */
+let S={sym:null,playing:false,timer:null};
+function openStudy(sym) {
+  S.sym=sym; const c=CHORDS[sym];
+  document.getElementById("sTitle").textContent=c.label+" · "+c.sym;
+  document.getElementById("sChord").textContent=c.sym;
+  document.getElementById("sNotes").textContent=c.notes.map(n=>noteToPt(n[0].replace(/\d/,""))).join(" – ")+" · dedos "+c.notes.map(n=>n[1]).join(" · ");
+  document.getElementById("sStep").innerHTML="";
+  buildPiano(document.getElementById("sPiano"));
+  clearKeys(document.getElementById("sPiano"));
+  show("study");
+}
+function toggleStudy(){S.playing?stopStudy():startStudy();}
+function startStudy(){
+  audioInit(); if(actx.state==="suspended")actx.resume();
+  S.playing=true;
+  document.getElementById("sPlayBtn").innerHTML="⏸ Parar";
+  document.getElementById("sPlayBtn").classList.add("playing");
+  runStudyLoop();
+}
+function stopStudy(){
+  S.playing=false; clearTimeout(S.timer);
+  document.getElementById("sPlayBtn").innerHTML="▶ Mostrar dedilhado";
+  document.getElementById("sPlayBtn").classList.remove("playing");
+}
+function runStudyLoop() {
+  const el=document.getElementById("sPiano"), c=CHORDS[S.sym]; let step=0;
+  const total=c.notes.length+1;
+  function tick(){
+    if(!S.playing) return;
+    const spb=60/(+document.getElementById("sSpeed").value);
+    clearKeys(el);
+    if(step<c.notes.length){
+      const [note,finger]=c.notes[step];
+      litNote(el,note,finger);
+      playBuffer(note,actx.currentTime,spb*0.85,0.55,true);
+      document.getElementById("sStep").innerHTML="Dedo <b>"+finger+"</b> ("+FNAME[finger]+") no <b>"+noteToPt(note.replace(/\d/,""))+"</b>";
+    } else {
+      litChord(el,S.sym);
+      c.notes.forEach((nf,i)=>playBuffer(nf[0],actx.currentTime+i*0.015,spb*1.3,0.55,false));
+      document.getElementById("sStep").innerHTML="Agora as <b>três juntas</b> 🎉";
+    }
+    step=(step+1)%total;
+    S.timer=setTimeout(tick,(step===1?spb*1.1:spb)*1000*(step===0?1.6:1)+380);
+  }
+  tick();
+}
+
+/* ===================== NAV ===================== */
+function show(id){["login","home","player","study"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));}
+function goHome(){
+  stopPlay(); stopStudy();
+  if (cifraAudio) { cifraAudio.pause(); cifraAudio.currentTime = 0; }
+  show("home");
+}
+
+/* ===================== LOGIN ===================== */
+function setLoginErr(msg){ document.getElementById("loginErr").textContent = msg; }
+function setLoginBtn(loading){
+  const b = document.getElementById("loginBtn");
+  b.disabled = loading; b.textContent = loading ? "Entrando…" : "Entrar";
+}
+
+async function doLogin() {
+  const email = document.getElementById("emailInput").value.trim();
+  const pass  = document.getElementById("passInput").value;
+  if (!email || !pass) { setLoginErr("Preencha e-mail e senha."); return; }
+  setLoginBtn(true); setLoginErr("");
+  const { error } = await supa.auth.signInWithPassword({ email, password: pass });
+  setLoginBtn(false);
+  if (error) {
+    setLoginErr(error.message === "Invalid login credentials"
+      ? "E-mail ou senha incorretos."
+      : error.message);
+  }
+}
+
+function toggleReset() {
+  const w = document.getElementById("resetWrap");
+  w.style.display = w.style.display === "none" ? "block" : "none";
+}
+
+async function doReset() {
+  const email = document.getElementById("emailInput").value.trim();
+  if (!email) { setLoginErr("Digite seu e-mail acima primeiro."); return; }
+  const { error } = await supa.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href
+  });
+  if (error) { setLoginErr(error.message); return; }
+  const errEl = document.getElementById("loginErr");
+  errEl.className = "login-ok";
+  errEl.textContent = "Link enviado! Verifique seu e-mail.";
+}
+
+async function logout() {
+  stopPlay(); stopStudy();
+  if (cifraAudio) { cifraAudio.pause(); cifraAudio.currentTime = 0; }
+  await supa.auth.signOut();
+}
+
+function enter(){buildHome();show("home");}
+function buildHome(){
+  const g=document.getElementById("songGrid"); g.innerHTML="";
+  SONGS.forEach((s,i)=>{
+    const b=document.createElement("button"); b.className="song"; b.onclick=()=>openSong(i);
+    b.innerHTML='<div class="num">'+s.n+'</div><div class="meta"><b>'+s.title+'</b><span>Tom de '+s.tom+'</span></div><div style="text-align:right"><div class="chords">'+s.prog.map(c=>CHORDS[c].sym).join(" · ")+'</div></div><div class="arrow">›</div>';
+    g.appendChild(b);
+  });
+  const cc=document.getElementById("chordChips"); cc.innerHTML="";
+  Object.keys(CHORDS).forEach(sym=>{
+    const c=CHORDS[sym], b=document.createElement("button"); b.className="chip"; b.onclick=()=>openStudy(sym);
+    b.innerHTML=c.sym+'<small>'+c.label+'</small>'; cc.appendChild(b);
+  });
+}
+
+window.addEventListener("load", async () => {
+  supa.auth.onAuthStateChange((_event, session) => {
+    if (session) enter(); else show("login");
+  });
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) enter(); else show("login");
+
+  document.getElementById("passInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") doLogin();
+  });
+  document.getElementById("emailInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("passInput").focus();
+  });
+});
+</script>
+</body>
+</html>
