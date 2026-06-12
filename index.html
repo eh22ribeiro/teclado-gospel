@@ -760,16 +760,18 @@ function renderCifraPlayer(songIdx) {
   const src = song.audio?.full ? audioFilePath(song.audio.full) : null;
   if (!src) return;
 
-  cifraAudio = new Audio(src);
-
   wrap.innerHTML = `
     <div class="cifra-player">
       <button class="cp-btn" id="cpPlayBtn" onclick="cpToggle()">▶</button>
+      <audio id="cifraAudioEl" preload="none" style="display:none"></audio>
       <div class="cp-progress-wrap" onclick="cpSeek(event)">
         <div class="cp-progress-fill" id="cpFill"></div>
       </div>
       <span class="cp-time" id="cpTime">0:00</span>
     </div>`;
+
+  cifraAudio = document.getElementById("cifraAudioEl");
+  cifraAudio.src = src;
 
   cifraAudio.addEventListener("play", ()=>{
     document.getElementById("cpPlayBtn").textContent = "⏸";
@@ -790,8 +792,14 @@ function renderCifraPlayer(songIdx) {
 
 function cpToggle() {
   if (!cifraAudio) return;
-  if (cifraAudio.paused) cifraAudio.play().catch(()=>{});
-  else cifraAudio.pause();
+  if (cifraAudio.paused) {
+    cifraAudio.play().catch(e => {
+      document.getElementById("cpPlayBtn").textContent = "⚠ erro";
+      console.error("Audio play error:", e);
+    });
+  } else {
+    cifraAudio.pause();
+  }
 }
 function cpSeek(e) {
   if (!cifraAudio || !cifraAudio.duration) return;
