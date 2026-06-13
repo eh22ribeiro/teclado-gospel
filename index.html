@@ -254,6 +254,11 @@
       <div class="toggle on" id="metroTog" onclick="toggleMetro()"></div>
     </div>
     <div class="ctrl-row">
+      <span class="lab">Volume teclado</span>
+      <input type="range" id="pianoVol" min="0" max="1" step="0.05" value="0.85" oninput="setPianoVol(this.value)">
+      <span class="bpm-val" id="pianoVolVal">85%</span>
+    </div>
+    <div class="ctrl-row">
       <span class="lab">Volume metrônomo</span>
       <input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.5" oninput="setMetroVol(this.value)">
       <span class="bpm-val" id="metroVolVal">50%</span>
@@ -605,11 +610,12 @@ function setSampleStatus(msg, cls) {
 }
 
 /* ===================== ÁUDIO ===================== */
-let actx, master, metroGain;
+let actx, master, pianoGain, metroGain;
 function audioInit() {
   if (actx) return;
   actx = new (window.AudioContext||window.webkitAudioContext)();
   master = actx.createGain(); master.gain.value = 0.85; master.connect(actx.destination);
+  pianoGain = actx.createGain(); pianoGain.gain.value = 0.85; pianoGain.connect(master);
   metroGain = actx.createGain(); metroGain.gain.value = 0.5; metroGain.connect(master);
 }
 async function audioUnlock() {
@@ -642,7 +648,7 @@ function playToneSynth(f, t, dur, gain) {
   g.gain.exponentialRampToValueAtTime(gain * 0.28, t + 0.35);  // decay suave
   g.gain.exponentialRampToValueAtTime(gain * 0.18, t + dur * 0.7);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.15); // release
-  o.connect(g); o2.connect(g); g.connect(master);
+  o.connect(g); o2.connect(g); g.connect(pianoGain);
   o.start(t); o2.start(t); o3.start(t);
   o.stop(t+dur+0.25); o2.stop(t+dur+0.25); o3.stop(t+dur+0.25);
 }
@@ -663,6 +669,10 @@ function click(t, accent) {
   g.gain.linearRampToValueAtTime(accent ? 0.18 : 0.10, t + 0.006);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
   o.connect(g); g.connect(metroGain); o.start(t); o.stop(t + 0.08);
+}
+function setPianoVol(v) {
+  if (pianoGain) pianoGain.gain.value = +v;
+  document.getElementById("pianoVolVal").textContent = Math.round(+v * 100) + "%";
 }
 function setMetroVol(v) {
   if (metroGain) metroGain.gain.value = +v;
