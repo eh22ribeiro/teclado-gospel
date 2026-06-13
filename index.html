@@ -618,15 +618,24 @@ function audioInit() {
   pianoGain = actx.createGain(); pianoGain.gain.value = 0.85; pianoGain.connect(master);
   metroGain = actx.createGain(); metroGain.gain.value = 0.5; metroGain.connect(master);
 }
+function playSilentBuffer() {
+  // iOS exige que algo seja tocado de verdade para ativar a sessão de áudio
+  const buf = actx.createBuffer(1, 1, actx.sampleRate);
+  const src = actx.createBufferSource();
+  src.buffer = buf;
+  src.connect(actx.destination);
+  src.start(0);
+}
 async function audioUnlock() {
   audioInit();
   if (actx.state === "suspended") await actx.resume();
+  playSilentBuffer();
 }
-// iOS Safari precisa de um toque explícito para desbloquear o AudioContext
-document.addEventListener("touchstart", function iosUnlock() {
+// iOS Safari: desbloqueia no primeiro toque em qualquer lugar da página
+document.addEventListener("touchstart", async function iosUnlock() {
   audioInit();
-  if (actx && actx.state === "suspended") actx.resume();
-  document.removeEventListener("touchstart", iosUnlock);
+  if (actx.state === "suspended") await actx.resume();
+  playSilentBuffer();
 }, {once: true, passive: true});
 
 const SEMI = {C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
