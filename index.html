@@ -612,6 +612,16 @@ function audioInit() {
   master = actx.createGain(); master.gain.value = 0.85; master.connect(actx.destination);
   metroGain = actx.createGain(); metroGain.gain.value = 0.5; metroGain.connect(master);
 }
+async function audioUnlock() {
+  audioInit();
+  if (actx.state === "suspended") await actx.resume();
+}
+// iOS Safari precisa de um toque explícito para desbloquear o AudioContext
+document.addEventListener("touchstart", function iosUnlock() {
+  audioInit();
+  if (actx && actx.state === "suspended") actx.resume();
+  document.removeEventListener("touchstart", iosUnlock);
+}, {once: true, passive: true});
 
 const SEMI = {C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
 function noteFreq(note) {
@@ -642,8 +652,8 @@ function playBuffer(note, t, dur, gain) {
 function playChordAt(sym, t, dur) {
   CHORDS[sym].notes.forEach((nf,i) => playBuffer(nf[0], t+i*0.012, dur, 0.55));
 }
-function playChordNow(sym) {
-  audioInit(); if (actx.state==="suspended") actx.resume();
+async function playChordNow(sym) {
+  await audioUnlock();
   playChordAt(sym, actx.currentTime+0.02, 1.8);
 }
 function click(t, accent) {
@@ -749,8 +759,8 @@ function toggleMetro(){P.metro=!P.metro;document.getElementById("metroTog").clas
 function setStyle(s,btn){P.style=s;document.querySelectorAll("#styleSeg button").forEach(b=>b.classList.remove("on"));btn.classList.add("on");}
 
 function togglePlay(){P.playing?stopPlay():startPlay();}
-function startPlay() {
-  audioInit(); if(actx.state==="suspended")actx.resume();
+async function startPlay() {
+  await audioUnlock();
   P.playing=true; P.beatIdx=0; P.chordIdx=0; P.beatInChord=0;
   P.nextTime=actx.currentTime+0.1;
   document.getElementById("playBtn").innerHTML="⏸ Pausar";
@@ -918,8 +928,8 @@ function openStudy(sym) {
   show("study");
 }
 function toggleStudy(){S.playing?stopStudy():startStudy();}
-function startStudy(){
-  audioInit(); if(actx.state==="suspended")actx.resume();
+async function startStudy(){
+  await audioUnlock();
   S.playing=true;
   document.getElementById("sPlayBtn").innerHTML="⏸ Parar";
   document.getElementById("sPlayBtn").classList.add("playing");
