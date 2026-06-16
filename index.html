@@ -772,7 +772,7 @@ function clearKeys(el) {
 }
 function litChord(el, sym) {
   clearKeys(el);
-  CHORDS[sym].notes.forEach(([note,finger])=>{
+  getChord(sym).notes.forEach(([note,finger])=>{
     const k=el.querySelector('.key[data-note="'+note+'"]'); if (!k) return;
     k.classList.add("lit","l"+finger);
     const fd=k.querySelector(".fdot"); fd.className="fdot f"+finger; fd.textContent=finger;
