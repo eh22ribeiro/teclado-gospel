@@ -68,6 +68,13 @@
   .chip{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 8px;font-weight:700;font-size:14px;min-width:62px;text-align:center;color:var(--ink)}
   .chip small{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-top:2px}
   .chip:hover{border-color:var(--acc)}
+  .chip.locked{opacity:.55;position:relative;cursor:pointer}
+  .chip.locked:hover{border-color:var(--gold);opacity:.8}
+  .chip.locked::after{content:"🔒";position:absolute;top:-7px;right:-7px;font-size:12px}
+  .dict-cta{background:linear-gradient(135deg,#1c1520,#231a30);border:1px solid var(--gold);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .dict-cta p{margin:0;font-size:13px;color:var(--muted);flex:1;line-height:1.5}
+  .dict-cta p b{color:var(--ink)}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),#a87c2a);color:#1a1200;font-weight:800;font-size:13px;padding:10px 16px;border-radius:10px;text-decoration:none;white-space:nowrap;flex:0 0 auto}
 
   /* PLAYER */
   .player-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
@@ -203,6 +210,14 @@
   <div class="song-grid" id="songGrid"></div>
   <div class="section-title">Estudar acordes (dedo por dedo)</div>
   <div class="chip-row" id="chordChips"></div>
+
+  <div class="section-title" style="margin-top:30px">Dicionário de Acordes · 72 Tríades</div>
+  <div class="dict-cta">
+    <p><b>Desbloqueie as 72 tríades.</b> Maior, menor, diminuto, aumentado, sus2 e sus4 em todas as 12 notas — com dedilhado visual e som no piano.</p>
+    <a class="btn-gold" href="https://go.hotmart.com/K106349156T" target="_blank" rel="noopener">Ver o Dicionário →</a>
+  </div>
+  <div class="chip-row" id="dictChips" style="flex-wrap:wrap"></div>
+
   <div class="footnote">Este site é um reforço visual do ebook. O som usa amostras de piano real.<br>Para cantar junto, use as gravações originais dos artistas.</div>
 </div>
 
@@ -565,6 +580,33 @@ const SONGS = [
     ]
   },
 ];
+
+/* ===================== DICIONÁRIO DE ACORDES (72 tríades) ===================== */
+const DICT_HOTMART = "https://go.hotmart.com/K106349156T";
+const _ROOTS = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const _ROOT_PT = {C:"Dó","C#":"Dó#",D:"Ré","D#":"Ré#",E:"Mi",F:"Fá","F#":"Fá#",G:"Sol","G#":"Sol#",A:"Lá","A#":"Lá#",B:"Si"};
+const _TYPES = [
+  {s:"",    l:" maior",     iv:[0,4,7]},
+  {s:"m",   l:" menor",     iv:[0,3,7]},
+  {s:"dim", l:" diminuto",  iv:[0,3,6]},
+  {s:"aug", l:" aumentado", iv:[0,4,8]},
+  {s:"sus2",l:" sus2",      iv:[0,2,7]},
+  {s:"sus4",l:" sus4",      iv:[0,5,7]},
+];
+function _dictNote(ri, offset) {
+  const i = ri + offset;
+  return _ROOTS[i % 12] + (4 + Math.floor(i / 12));
+}
+const DICT_CHORDS = [];
+_ROOTS.forEach((root, ri) => {
+  _TYPES.forEach(type => {
+    DICT_CHORDS.push({
+      sym: root + type.s,
+      label: _ROOT_PT[root] + type.l,
+      notes: type.iv.map((iv, fi) => [_dictNote(ri, iv), [1,3,5][fi]])
+    });
+  });
+});
 
 /* ===================== SAMPLES ===================== */
 const NOTE_TO_PT = {
@@ -1064,6 +1106,13 @@ function buildHome(){
   Object.keys(CHORDS).forEach(sym=>{
     const c=CHORDS[sym], b=document.createElement("button"); b.className="chip"; b.onclick=()=>openStudy(sym);
     b.innerHTML=c.sym+'<small>'+c.label+'</small>'; cc.appendChild(b);
+  });
+  const dc=document.getElementById("dictChips"); dc.innerHTML="";
+  DICT_CHORDS.forEach(c=>{
+    const b=document.createElement("button"); b.className="chip locked";
+    b.innerHTML=c.sym+'<small>'+c.label+'</small>';
+    b.onclick=()=>window.open(DICT_HOTMART,"_blank","noopener");
+    dc.appendChild(b);
   });
 }
 
