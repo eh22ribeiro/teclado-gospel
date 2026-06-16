@@ -209,14 +209,16 @@
   <div class="section-title">6 louvores do método</div>
   <div class="song-grid" id="songGrid"></div>
   <div class="section-title">Estudar acordes (dedo por dedo)</div>
-  <div class="chip-row" id="chordChips"></div>
+  <div class="chip-row" id="chordChips" style="flex-wrap:wrap"></div>
 
-  <div class="section-title" style="margin-top:30px">Dicionário de Acordes · 72 Tríades</div>
-  <div class="dict-cta">
-    <p><b>Desbloqueie as 72 tríades.</b> Maior, menor, diminuto, aumentado, sus2 e sus4 em todas as 12 notas — com dedilhado visual e som no piano.</p>
-    <a class="btn-gold" href="https://go.hotmart.com/K106349156T" target="_blank" rel="noopener">Ver o Dicionário →</a>
+  <div id="dictSection">
+    <div class="section-title" style="margin-top:30px">Dicionário de Acordes · 72 Tríades</div>
+    <div class="dict-cta">
+      <p><b>Desbloqueie as 72 tríades.</b> Maior, menor, diminuto, aumentado, sus2 e sus4 em todas as 12 notas — com dedilhado visual e som no piano.</p>
+      <a class="btn-gold" href="https://go.hotmart.com/K106349156T" target="_blank" rel="noopener">Ver o Dicionário →</a>
+    </div>
+    <div class="chip-row" id="dictChips" style="flex-wrap:wrap"></div>
   </div>
-  <div class="chip-row" id="dictChips" style="flex-wrap:wrap"></div>
 
   <div class="footnote">Este site é um reforço visual do ebook. O som usa amostras de piano real.<br>Para cantar junto, use as gravações originais dos artistas.</div>
 </div>
@@ -612,8 +614,10 @@ _ROOTS_SHARP.forEach((root, ri) => {
   });
 });
 
-// mescla dict no CHORDS para openStudy funcionar quando desbloqueado
-DICT_CHORDS.forEach(c => { if (!CHORDS[c.sym]) CHORDS[c.sym] = c; });
+// lookup separado para openStudy funcionar com acordes do dicionário
+const DICT_BY_SYM = {};
+DICT_CHORDS.forEach(c => { DICT_BY_SYM[c.sym] = c; });
+function getChord(sym) { return CHORDS[sym] || DICT_BY_SYM[sym]; }
 
 /* ===================== SAMPLES ===================== */
 const NOTE_TO_PT = {
@@ -986,7 +990,7 @@ function switchTab(tab) {
 /* ===================== STUDY ===================== */
 let S={sym:null,playing:false,timer:null};
 function openStudy(sym) {
-  S.sym=sym; const c=CHORDS[sym];
+  S.sym=sym; const c=getChord(sym);
   document.getElementById("sTitle").textContent=c.label+" · "+c.sym;
   document.getElementById("sChord").textContent=c.sym;
   document.getElementById("sNotes").textContent=c.notes.map(n=>noteToPt(n[0].replace(/\d/,""))).join(" – ")+" · dedos "+c.notes.map(n=>n[1]).join(" · ");
@@ -1009,7 +1013,7 @@ function stopStudy(){
   document.getElementById("sPlayBtn").classList.remove("playing");
 }
 function runStudyLoop() {
-  const el=document.getElementById("sPiano"), c=CHORDS[S.sym]; let step=0;
+  const el=document.getElementById("sPiano"), c=getChord(S.sym); let step=0;
   const total=c.notes.length+1;
   function tick(){
     if(!S.playing) return;
@@ -1114,22 +1118,27 @@ function buildHome(hasDict=false){
     b.innerHTML='<div class="num">'+s.n+'</div><div class="meta"><b>'+s.title+'</b><span>Tom de '+s.tom+'</span></div><div style="text-align:right"><div class="chords">'+s.prog.map(c=>CHORDS[c].sym).join(" · ")+'</div></div><div class="arrow">›</div>';
     g.appendChild(b);
   });
+  // acordes livres (sempre visíveis e desbloqueados)
   const cc=document.getElementById("chordChips"); cc.innerHTML="";
-  Object.keys(CHORDS).filter(sym=>!DICT_CHORDS.find(d=>d.sym===sym)).forEach(sym=>{
-    const c=CHORDS[sym], b=document.createElement("button"); b.className="chip"; b.onclick=()=>openStudy(sym);
-    b.innerHTML=c.sym+'<small>'+c.label+'</small>'; cc.appendChild(b);
-  });
-  const dc=document.getElementById("dictChips"); dc.innerHTML="";
-  DICT_CHORDS.forEach(c=>{
-    const b=document.createElement("button");
-    if(hasDict){
-      b.className="chip"; b.onclick=()=>openStudy(c.sym);
-    } else {
-      b.className="chip locked"; b.onclick=()=>window.open(DICT_HOTMART,"_blank","noopener");
-    }
-    b.innerHTML=c.sym+'<small>'+c.label+'</small>';
-    dc.appendChild(b);
-  });
+  function addChip(sym, chord){ const b=document.createElement("button"); b.className="chip"; b.onclick=()=>openStudy(sym); b.innerHTML=chord.sym+'<small>'+chord.label+'</small>'; cc.appendChild(b); }
+  Object.keys(CHORDS).forEach(sym=>addChip(sym, CHORDS[sym]));
+
+  // seção do dicionário
+  const dictSec=document.getElementById("dictSection");
+  if(hasDict){
+    // desbloqueado: todos os 72 vão junto com os livres, seção separada some
+    dictSec.classList.add("hidden");
+    DICT_CHORDS.forEach(c=>addChip(c.sym, c));
+  } else {
+    // bloqueado: mostra banner + 72 chips com cadeado
+    dictSec.classList.remove("hidden");
+    const dc=document.getElementById("dictChips"); dc.innerHTML="";
+    DICT_CHORDS.forEach(c=>{
+      const b=document.createElement("button"); b.className="chip locked";
+      b.onclick=()=>window.open(DICT_HOTMART,"_blank","noopener");
+      b.innerHTML=c.sym+'<small>'+c.label+'</small>'; dc.appendChild(b);
+    });
+  }
 }
 
 /* O link do e-mail traz type=recovery (ou invite) no endereço.
