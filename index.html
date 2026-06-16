@@ -583,8 +583,11 @@ const SONGS = [
 
 /* ===================== DICIONÁRIO DE ACORDES (72 tríades) ===================== */
 const DICT_HOTMART = "https://go.hotmart.com/K106349156T";
-const _ROOTS = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-const _ROOT_PT = {C:"Dó","C#":"Dó#",D:"Ré","D#":"Ré#",E:"Mi",F:"Fá","F#":"Fá#",G:"Sol","G#":"Sol#",A:"Lá","A#":"Lá#",B:"Si"};
+// notas internas usam sustenido (para bater com as teclas do piano no HTML)
+// símbolos de exibição usam bemol onde o dicionário PDF usa bemol
+const _ROOTS_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const _ROOTS_SYM   = ["C","Db","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+const _ROOT_PT = {C:"Dó",Db:"Reb",D:"Ré",Eb:"Mib",E:"Mi",F:"Fá","F#":"Fá#",G:"Sol",Ab:"Lab",A:"Lá",Bb:"Sib",B:"Si"};
 const _TYPES = [
   {s:"",    l:" maior",     iv:[0,4,7]},
   {s:"m",   l:" menor",     iv:[0,3,7]},
@@ -595,14 +598,15 @@ const _TYPES = [
 ];
 function _dictNote(ri, offset) {
   const i = ri + offset;
-  return _ROOTS[i % 12] + (4 + Math.floor(i / 12));
+  return _ROOTS_SHARP[i % 12] + (4 + Math.floor(i / 12));
 }
 const DICT_CHORDS = [];
-_ROOTS.forEach((root, ri) => {
+_ROOTS_SHARP.forEach((root, ri) => {
+  const symRoot = _ROOTS_SYM[ri];
   _TYPES.forEach(type => {
     DICT_CHORDS.push({
-      sym: root + type.s,
-      label: _ROOT_PT[root] + type.l,
+      sym: symRoot + type.s,
+      label: _ROOT_PT[symRoot] + type.l,
       notes: type.iv.map((iv, fi) => [_dictNote(ri, iv), [1,3,5][fi]])
     });
   });
