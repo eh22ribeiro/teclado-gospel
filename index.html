@@ -608,6 +608,9 @@ _ROOTS.forEach((root, ri) => {
   });
 });
 
+// mescla dict no CHORDS para openStudy funcionar quando desbloqueado
+DICT_CHORDS.forEach(c => { if (!CHORDS[c.sym]) CHORDS[c.sym] = c; });
+
 /* ===================== SAMPLES ===================== */
 const NOTE_TO_PT = {
   "C":"Dó","C#":"Dó sustenido","D":"Ré","D#":"Ré sustenido",
@@ -1094,8 +1097,13 @@ async function logout() {
   await supa.auth.signOut();
 }
 
-function enter(){buildHome();show("home");}
-function buildHome(){
+async function enter(){
+  const { data:{ user } } = await supa.auth.getUser();
+  const hasDict = user?.user_metadata?.has_dict === true;
+  buildHome(hasDict);
+  show("home");
+}
+function buildHome(hasDict=false){
   const g=document.getElementById("songGrid"); g.innerHTML="";
   SONGS.forEach((s,i)=>{
     const b=document.createElement("button"); b.className="song"; b.onclick=()=>openSong(i);
@@ -1103,15 +1111,19 @@ function buildHome(){
     g.appendChild(b);
   });
   const cc=document.getElementById("chordChips"); cc.innerHTML="";
-  Object.keys(CHORDS).forEach(sym=>{
+  Object.keys(CHORDS).filter(sym=>!DICT_CHORDS.find(d=>d.sym===sym)).forEach(sym=>{
     const c=CHORDS[sym], b=document.createElement("button"); b.className="chip"; b.onclick=()=>openStudy(sym);
     b.innerHTML=c.sym+'<small>'+c.label+'</small>'; cc.appendChild(b);
   });
   const dc=document.getElementById("dictChips"); dc.innerHTML="";
   DICT_CHORDS.forEach(c=>{
-    const b=document.createElement("button"); b.className="chip locked";
+    const b=document.createElement("button");
+    if(hasDict){
+      b.className="chip"; b.onclick=()=>openStudy(c.sym);
+    } else {
+      b.className="chip locked"; b.onclick=()=>window.open(DICT_HOTMART,"_blank","noopener");
+    }
     b.innerHTML=c.sym+'<small>'+c.label+'</small>';
-    b.onclick=()=>window.open(DICT_HOTMART,"_blank","noopener");
     dc.appendChild(b);
   });
 }
