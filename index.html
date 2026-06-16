@@ -1128,7 +1128,7 @@ function buildHome(hasDict=false){
   if(hasDict){
     // desbloqueado: todos os 72 vão junto com os livres, seção separada some
     dictSec.classList.add("hidden");
-    DICT_CHORDS.forEach(c=>addChip(c.sym, c));
+    DICT_CHORDS.forEach(c=>{ if(!CHORDS[c.sym]) addChip(c.sym, c); });
   } else {
     // bloqueado: mostra banner + 72 chips com cadeado
     dictSec.classList.remove("hidden");
